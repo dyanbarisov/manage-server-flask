@@ -7,6 +7,17 @@ import random
 from time import sleep
 from db import Session
 from sqlalchemy import desc
+import logging
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+console.setFormatter(formatter)
+log.addHandler(console)
+
 
 rack_fields = {
     'id': fields.Integer,
@@ -38,15 +49,16 @@ class RackResource(Resource):
     def get(self, id):
         rack = Session.query(Rack).filter(Rack.id == id).first()
         if not rack:
-            abort(404, message="Rack {} doesn't exist".format(id))
+            abort(404, message="Rack id={} doesn't exist".format(id))
         return rack
 
     def delete(self, id):
         rack = Session.query(Rack).filter(Rack.id == id).first()
         if not rack:
-            abort(404, message="Rack {} doesn't exist".format(id))
+            abort(404, message="Rack id={} doesn't exist".format(id))
         Session.delete(rack)
         Session.commit()
+        log.info("Rack id={} deleted".format(id))
         return {}, 204
 
     @marshal_with(rack_fields)
@@ -58,6 +70,7 @@ class RackResource(Resource):
         rack.create_at = parsed_args['capacity']
         Session.add(rack)
         Session.commit()
+        log.info("Rack id={} modified".format(id))
         return rack, 201
 
 
@@ -79,6 +92,7 @@ class RackListResource(Resource):
         )
         Session.add(rack)
         Session.commit()
+        log.info("Rack created: {}".format(rack))
         return rack, 201
 
 
@@ -96,6 +110,7 @@ class ServerResource(Resource):
         server.change_date = dt_now
         Session.add(server)
         Session.commit()
+        log.info("Server id={} activated".format(server_id))
 
     def change_state(self, server_id, server_state):
         server = Session.query(Server).filter(Server.id == server_id).first()
@@ -104,6 +119,7 @@ class ServerResource(Resource):
             server.change_date = datetime.now()
             Session.add(server)
             Session.commit()
+            log.info("Server id={} set state={}".format(server_id, server_state))
             return server, 201
         abort(406, message="The server transition to the paid state is not available.")
 
@@ -120,6 +136,7 @@ class ServerResource(Resource):
             abort(404, message="Server {} doesn't exist".format(id))
         Session.delete(server)
         Session.commit()
+        log.info("Server id={} deleted".format(id))
         return {}, 204
 
     @marshal_with(server_fields)
@@ -131,6 +148,7 @@ class ServerResource(Resource):
         server.create_at = parsed_args['capacity']
         Session.add(server)
         Session.commit()
+        log.info("Server id={} modified".format(server))
         return server, 201
 
     @marshal_with(server_fields)
@@ -171,4 +189,5 @@ class ServerListResource(Resource):
         Session.add(server)
         Session.add(rack)
         Session.commit()
+        log.info("Server created: {}".format(server))
         return server, 201
