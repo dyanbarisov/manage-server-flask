@@ -31,6 +31,7 @@ parser.add_argument('state')
 parser.add_argument('rack')
 parser.add_argument('sort_by')
 parser.add_argument('months')
+parser.add_argument('months')
 
 
 class RackResource(Resource):
@@ -91,7 +92,7 @@ class ServerResource(Resource):
         months = Server.DEFAULT_MONTHS_PAID if months is None else int(months)
         server.state = Server.SERVER_STATES['Active']
         dt_now = datetime.now()
-        server.expired_date = dt_now + relativedelta(months=months)
+        server.expired_date = dt_now + relativedelta(minute=months)
         server.change_date = dt_now
         Session.add(server)
         Session.commit()
