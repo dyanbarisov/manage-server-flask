@@ -34,10 +34,13 @@ class Server(Base):
         'Deleted': '3'
     }
 
+    DEFAULT_MONTHS_PAID = 1
+
     __tablename__ = 'servers'
     id = Column(Integer, primary_key=True)
     create_date = Column(DateTime)
     change_date = Column(DateTime)
+    expired_date = Column(DateTime)
     state = Column(String, nullable=False, default=0)
     rack = Column(Integer, ForeignKey('racks.id'))
 
