@@ -31,7 +31,6 @@ parser.add_argument('state')
 parser.add_argument('rack')
 parser.add_argument('sort_by')
 parser.add_argument('months')
-parser.add_argument('months')
 
 
 class RackResource(Resource):
@@ -87,26 +86,24 @@ class ServerResource(Resource):
     def activate_server(self, server_id, months):
         sleep(random.randint(3, 20))
         server = Session.query(Server).filter(Server.id == server_id).first()
-        if server.state == Server.SERVER_STATES['Deleted']:
+        if server.state == Server.DELETED:
             return
         months = Server.DEFAULT_MONTHS_PAID if months is None else int(months)
-        server.state = Server.SERVER_STATES['Active']
+        server.state = Server.ACTIVE
         dt_now = datetime.now()
-        server.expired_date = dt_now + relativedelta(minute=months)
+        # relativedelta измеряется в минутах, чтобы можно было проверить переход из Active в Unpaid по планировщику
+        server.expired_date = dt_now + relativedelta(minutes=+months)
         server.change_date = dt_now
         Session.add(server)
         Session.commit()
 
-    def change_state(self, server_id, server_state, months):
+    def change_state(self, server_id, server_state):
         server = Session.query(Server).filter(Server.id == server_id).first()
-        if server_state == Server.SERVER_STATES['Paid'] and server.state == Server.SERVER_STATES['Unpaid'] or \
-                server_state == Server.SERVER_STATES['Deleted']:
+        if Server.STATE_MATRIX[server.state](server_state):
             server.state = server_state
             server.change_date = datetime.now()
             Session.add(server)
             Session.commit()
-            if server_state == Server.SERVER_STATES['Paid']:
-                Thread(target=self.activate_server, args=(server_id, months,)).start()
             return server, 201
         abort(406, message="The server transition to the paid state is not available.")
 
@@ -140,9 +137,11 @@ class ServerResource(Resource):
     def patch(self, id):
         parsed_args = parser.parse_args()
         state = parsed_args['state']
-        month = parsed_args['months']
         if state:
-            self.change_state(id, state, month)
+            self.change_state(id, state)
+        if state == Server.PAID:
+            months = parsed_args['months']
+            Thread(target=self.activate_server, args=(id, months,)).start()
 
 
 class ServerListResource(Resource):

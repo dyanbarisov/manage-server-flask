@@ -27,11 +27,21 @@ class Rack(Base):
 
 
 class Server(Base):
+    UNPAID = '0'
+    PAID = '1'
+    ACTIVE = '2'
+    DELETED = '3'
     SERVER_STATES = {
-        'Unpaid': '0',
-        'Paid': '1',
-        'Active': '2',
-        'Deleted': '3'
+        'Unpaid': UNPAID,
+        'Paid': PAID,
+        'Active': ACTIVE,
+        'Deleted': DELETED
+    }
+    STATE_MATRIX = {
+        DELETED: lambda st: False,
+        UNPAID: lambda st: st == Server.PAID,
+        PAID: lambda st: st == Server.DELETED,
+        ACTIVE: lambda st: st == Server.DELETED
     }
 
     DEFAULT_MONTHS_PAID = 1
